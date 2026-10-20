@@ -1,0 +1,138 @@
+<section class="space-y-4">
+  <div class="flex flex-wrap items-center justify-between gap-3">
+    <h1 class="text-lg font-semibold text-slate-800">My requests</h1>
+    <div class="flex items-center gap-2">
+      <select
+        class="rounded-md border border-slate-300 px-3 py-1.5 text-sm"
+        (change)="onStatusChange($any($event.target).value)"
+      >
+        <option value="">All statuses</option>
+        @for (status of filterOptions; track status) {
+          <option [value]="status">{{ status }}</option>
+        }
+      </select>
+
+      <button
+        *appHasPermission="'leaves.create'"
+        type="button"
+        (click)="toggleForm()"
+        class="rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-indigo-700"
+      >
+        {{ showForm() ? 'Close' : 'New request' }}
+      </button>
+    </div>
+  </div>
+
+  @if (error(); as message) {
+    <div
+      role="alert"
+      class="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
+    >
+      {{ message }}
+    </div>
+  }
+
+  @if (showForm()) {
+    <form
+      [formGroup]="form"
+      (ngSubmit)="submit()"
+      class="grid grid-cols-1 gap-3 rounded-lg border border-slate-200 bg-white p-4 sm:grid-cols-2"
+    >
+      <label class="text-sm">
+        <span class="mb-1 block font-medium text-slate-700">Type</span>
+        <select formControlName="type" class="w-full rounded-md border border-slate-300 px-3 py-2">
+          @for (type of types; track type) {
+            <option [value]="type">{{ type }}</option>
+          }
+        </select>
+      </label>
+
+      <label class="text-sm">
+        <span class="mb-1 block font-medium text-slate-700">Start date</span>
+        <input
+          type="date"
+          formControlName="startDate"
+          class="w-full rounded-md border border-slate-300 px-3 py-2"
+        />
+      </label>
+
+      <label class="text-sm">
+        <span class="mb-1 block font-medium text-slate-700">End date</span>
+        <input
+          type="date"
+          formControlName="endDate"
+          class="w-full rounded-md border border-slate-300 px-3 py-2"
+        />
+      </label>
+
+      <label class="text-sm sm:col-span-2">
+        <span class="mb-1 block font-medium text-slate-700">Reason</span>
+        <input
+          type="text"
+          formControlName="reason"
+          class="w-full rounded-md border border-slate-300 px-3 py-2"
+        />
+      </label>
+
+      <div class="sm:col-span-2">
+        <button
+          type="submit"
+          class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700"
+        >
+          Submit request
+        </button>
+      </div>
+    </form>
+  }
+
+  <div class="overflow-hidden rounded-lg border border-slate-200 bg-white">
+    <table class="w-full text-left text-sm">
+      <thead class="bg-slate-50 text-xs uppercase text-slate-500">
+        <tr>
+          <th class="px-4 py-2">Type</th>
+          <th class="px-4 py-2">Period</th>
+          <th class="px-4 py-2">Reason</th>
+          <th class="px-4 py-2">Status</th>
+          <th class="px-4 py-2 text-right">Actions</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100">
+        @for (request of requests(); track request.id) {
+          <tr>
+            <td class="px-4 py-2 font-medium">{{ request.type }}</td>
+            <td class="px-4 py-2 text-slate-600">
+              {{ formatDate(request.startDate) }} – {{ formatDate(request.endDate) }}
+            </td>
+            <td class="px-4 py-2 text-slate-600">{{ request.reason }}</td>
+            <td class="px-4 py-2">
+              <span
+                class="rounded-full px-2 py-0.5 text-xs font-medium"
+                [class]="statusClasses(request.status)"
+              >
+                {{ request.status }}
+              </span>
+            </td>
+            <td class="px-4 py-2 text-right">
+              @if (request.status === 'Pending') {
+                <button
+                  *appHasPermission="'leaves.cancel'"
+                  type="button"
+                  (click)="cancel(request)"
+                  class="rounded-md border border-slate-300 px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-100"
+                >
+                  Cancel
+                </button>
+              }
+            </td>
+          </tr>
+        } @empty {
+          <tr>
+            <td colspan="5" class="px-4 py-6 text-center text-slate-400">
+              {{ loading() ? 'Loading…' : 'No requests yet.' }}
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</section>

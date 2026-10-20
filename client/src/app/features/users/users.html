@@ -1,0 +1,210 @@
+<section class="space-y-4">
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-lg font-semibold text-slate-800">Users</h1>
+      <p class="text-sm text-slate-500">Manage people in your company and the roles they hold.</p>
+    </div>
+    @if (canManage()) {
+      <button
+        type="button"
+        (click)="openCreate()"
+        class="rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-indigo-700"
+      >
+        {{ showCreate() ? 'Close' : 'New user' }}
+      </button>
+    }
+  </div>
+
+  @if (error(); as message) {
+    <div
+      role="alert"
+      class="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
+    >
+      {{ message }}
+    </div>
+  }
+  @if (notice(); as message) {
+    <div
+      role="status"
+      class="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700"
+    >
+      {{ message }}
+    </div>
+  }
+
+  @if (showCreate()) {
+    <form
+      [formGroup]="form"
+      (ngSubmit)="create()"
+      class="grid grid-cols-1 gap-3 rounded-lg border border-slate-200 bg-white p-4 sm:grid-cols-3"
+    >
+      <label class="text-sm">
+        <span class="mb-1 block font-medium text-slate-700">Email</span>
+        <input
+          type="email"
+          formControlName="email"
+          class="w-full rounded-md border border-slate-300 px-3 py-2"
+        />
+      </label>
+      <label class="text-sm">
+        <span class="mb-1 block font-medium text-slate-700">Full name</span>
+        <input
+          type="text"
+          formControlName="fullName"
+          class="w-full rounded-md border border-slate-300 px-3 py-2"
+        />
+      </label>
+      <label class="text-sm">
+        <span class="mb-1 block font-medium text-slate-700">Department</span>
+        <select
+          formControlName="departmentId"
+          class="w-full rounded-md border border-slate-300 px-3 py-2"
+        >
+          <option value="">No department</option>
+          @for (department of departments(); track department.id) {
+            <option [value]="department.id">{{ department.name }}</option>
+          }
+        </select>
+      </label>
+      <label class="text-sm">
+        <span class="mb-1 block font-medium text-slate-700">Password (optional)</span>
+        <input
+          type="text"
+          formControlName="password"
+          placeholder="Defaults to the demo password"
+          class="w-full rounded-md border border-slate-300 px-3 py-2"
+        />
+      </label>
+
+      <fieldset class="sm:col-span-3">
+        <legend class="mb-1 text-sm font-medium text-slate-700">Roles</legend>
+        <div class="flex flex-wrap gap-3">
+          @for (role of roles(); track role.id) {
+            <label class="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                [checked]="createRoles().includes(role.name)"
+                (change)="toggleCreateRole(role.name)"
+              />
+              {{ role.name }}
+            </label>
+          }
+        </div>
+      </fieldset>
+
+      <div class="sm:col-span-3">
+        <button
+          type="submit"
+          [disabled]="busy()"
+          class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-60"
+        >
+          Create user
+        </button>
+      </div>
+    </form>
+  }
+
+  <div class="overflow-hidden rounded-lg border border-slate-200 bg-white">
+    <table class="w-full text-left text-sm">
+      <thead class="bg-slate-50 text-xs uppercase text-slate-500">
+        <tr>
+          <th class="px-4 py-2">Name</th>
+          <th class="px-4 py-2">Email</th>
+          <th class="px-4 py-2">Department</th>
+          <th class="px-4 py-2">Roles</th>
+          <th class="px-4 py-2">Status</th>
+          <th class="px-4 py-2 text-right">Actions</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100">
+        @for (user of users(); track user.id) {
+          <tr>
+            <td class="px-4 py-2 font-medium">
+              {{ user.name }}
+              @if (isSelf(user)) {
+                <span class="ml-1 text-xs font-normal text-slate-400">(you)</span>
+              }
+            </td>
+            <td class="px-4 py-2 text-slate-600">{{ user.email }}</td>
+            <td class="px-4 py-2 text-slate-600">{{ departmentName(user) }}</td>
+            <td class="px-4 py-2">
+              @if (editingId() === user.id) {
+                <div class="flex flex-wrap gap-2">
+                  @for (role of roles(); track role.id) {
+                    <label class="flex items-center gap-1 text-xs">
+                      <input
+                        type="checkbox"
+                        [checked]="draftRoles().includes(role.name)"
+                        (change)="toggleDraftRole(role.name)"
+                      />
+                      {{ role.name }}
+                    </label>
+                  }
+                </div>
+              } @else {
+                <span class="text-slate-600">{{ user.roles.join(', ') || '—' }}</span>
+              }
+            </td>
+            <td class="px-4 py-2">
+              <span
+                class="rounded-full px-2 py-0.5 text-xs font-medium"
+                [class]="
+                  user.isActive ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-600'
+                "
+              >
+                {{ user.isActive ? 'Active' : 'Inactive' }}
+              </span>
+            </td>
+            <td class="px-4 py-2 text-right">
+              @if (canManage()) {
+                @if (editingId() === user.id) {
+                  <button
+                    type="button"
+                    [disabled]="busy()"
+                    (click)="saveRoles(user)"
+                    class="rounded-md bg-indigo-600 px-2 py-1 text-xs font-medium text-white hover:bg-indigo-700 disabled:opacity-60"
+                  >
+                    Save
+                  </button>
+                  <button
+                    type="button"
+                    (click)="cancelEdit()"
+                    class="ml-1 rounded-md border border-slate-300 px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-100"
+                  >
+                    Cancel
+                  </button>
+                } @else {
+                  <button
+                    type="button"
+                    [disabled]="isSelf(user)"
+                    (click)="editRoles(user)"
+                    class="rounded-md border border-slate-300 px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-100 disabled:opacity-40"
+                  >
+                    Edit roles
+                  </button>
+                  <button
+                    type="button"
+                    [disabled]="isSelf(user)"
+                    (click)="toggleActive(user)"
+                    class="ml-1 rounded-md border px-2 py-1 text-xs font-medium disabled:opacity-40"
+                    [class]="
+                      user.isActive
+                        ? 'border-red-300 text-red-600 hover:bg-red-50'
+                        : 'border-emerald-300 text-emerald-700 hover:bg-emerald-50'
+                    "
+                  >
+                    {{ user.isActive ? 'Deactivate' : 'Activate' }}
+                  </button>
+                }
+              }
+            </td>
+          </tr>
+        } @empty {
+          <tr>
+            <td colspan="6" class="px-4 py-6 text-center text-slate-400">No users.</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</section>

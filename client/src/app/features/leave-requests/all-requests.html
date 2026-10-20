@@ -1,0 +1,125 @@
+<section class="space-y-4">
+  <div class="flex flex-wrap items-center justify-between gap-3">
+    <div>
+      <h1 class="text-lg font-semibold text-slate-800">All requests</h1>
+      <p class="text-sm text-slate-500">Every request in your organisation.</p>
+    </div>
+    <div class="flex items-center gap-2">
+      <select
+        class="rounded-md border border-slate-300 px-3 py-1.5 text-sm"
+        (change)="onTypeChange($any($event.target).value)"
+      >
+        <option value="">All types</option>
+        @for (type of typeOptions; track type) {
+          <option [value]="type">{{ type }}</option>
+        }
+      </select>
+
+      <select
+        class="rounded-md border border-slate-300 px-3 py-1.5 text-sm"
+        (change)="onStatusChange($any($event.target).value)"
+      >
+        <option value="">All statuses</option>
+        @for (status of filterOptions; track status) {
+          <option [value]="status">{{ status }}</option>
+        }
+      </select>
+
+      @if (canExport()) {
+        <button
+          type="button"
+          (click)="exportCsv()"
+          class="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-100"
+        >
+          Export CSV
+        </button>
+      }
+    </div>
+  </div>
+
+  @if (error(); as message) {
+    <div
+      role="alert"
+      class="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
+    >
+      {{ message }}
+    </div>
+  }
+
+  <div class="overflow-hidden rounded-lg border border-slate-200 bg-white">
+    <table class="w-full text-left text-sm">
+      <thead class="bg-slate-50 text-xs uppercase text-slate-500">
+        <tr>
+          <th class="px-4 py-2">Employee</th>
+          <th class="px-4 py-2">Department</th>
+          <th class="px-4 py-2">Type</th>
+          <th class="px-4 py-2">Period</th>
+          <th class="px-4 py-2">Status</th>
+          <th class="px-4 py-2 text-right">Actions</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100">
+        @for (request of visible(); track request.id) {
+          <tr>
+            <td class="px-4 py-2 font-medium">{{ request.employeeName }}</td>
+            <td class="px-4 py-2 text-slate-600">{{ request.departmentName || '—' }}</td>
+            <td class="px-4 py-2">{{ request.type }}</td>
+            <td class="px-4 py-2 text-slate-600">
+              {{ formatDate(request.startDate) }} – {{ formatDate(request.endDate) }}
+            </td>
+            <td class="px-4 py-2">
+              <span
+                class="rounded-full px-2 py-0.5 text-xs font-medium"
+                [class]="statusClasses(request.status)"
+              >
+                {{ request.status }}
+              </span>
+            </td>
+            <td class="px-4 py-2 text-right">
+              @if (request.status === 'Pending') {
+                <span *appHasPermission="'leaves.approve'">
+                  <button
+                    type="button"
+                    [disabled]="!canDecide(request)"
+                    [title]="
+                      isOwn(request)
+                        ? 'You cannot decide on your own request.'
+                        : needsHr(request) && !canApproveLong()
+                          ? 'Requests longer than 10 days require HR approval.'
+                          : ''
+                    "
+                    (click)="approve(request)"
+                    class="rounded-md bg-emerald-600 px-2 py-1 text-xs font-medium text-white hover:bg-emerald-700 disabled:opacity-40"
+                  >
+                    Approve
+                  </button>
+                  <button
+                    type="button"
+                    [disabled]="!canDecide(request)"
+                    [title]="
+                      isOwn(request)
+                        ? 'You cannot decide on your own request.'
+                        : needsHr(request) && !canApproveLong()
+                          ? 'Requests longer than 10 days require HR approval.'
+                          : ''
+                    "
+                    (click)="reject(request)"
+                    class="ml-1 rounded-md bg-red-600 px-2 py-1 text-xs font-medium text-white hover:bg-red-700 disabled:opacity-40"
+                  >
+                    Reject
+                  </button>
+                </span>
+              }
+            </td>
+          </tr>
+        } @empty {
+          <tr>
+            <td colspan="6" class="px-4 py-6 text-center text-slate-400">
+              {{ loading() ? 'Loading…' : 'No requests.' }}
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</section>

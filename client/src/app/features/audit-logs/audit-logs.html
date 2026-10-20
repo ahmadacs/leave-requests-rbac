@@ -1,0 +1,72 @@
+<section class="space-y-4">
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-xl font-semibold text-slate-900">Audit log</h1>
+      <p class="text-sm text-slate-500">Read-only history of role and assignment changes.</p>
+    </div>
+    <button
+      type="button"
+      (click)="load()"
+      [disabled]="loading()"
+      class="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+    >
+      Refresh
+    </button>
+  </div>
+
+  @if (error(); as error) {
+    <div class="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+      {{ error }}
+    </div>
+  }
+
+  <div class="overflow-hidden rounded-lg border border-slate-200 bg-white">
+    <table class="min-w-full divide-y divide-slate-200 text-sm">
+      <thead class="bg-slate-50 text-left text-xs font-semibold uppercase text-slate-500">
+        <tr>
+          <th class="px-4 py-3">When</th>
+          <th class="px-4 py-3">Actor</th>
+          <th class="px-4 py-3">Action</th>
+          <th class="px-4 py-3">Entity</th>
+          <th class="px-4 py-3">Details</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100">
+        @for (entry of logs(); track entry.id) {
+          <tr class="align-top">
+            <td class="whitespace-nowrap px-4 py-3 text-slate-600">
+              {{ entry.createdAtUtc | date: 'yyyy-MM-dd HH:mm:ss' }}
+            </td>
+            <td class="px-4 py-3 font-medium text-slate-900">{{ entry.actorName }}</td>
+            <td class="whitespace-nowrap px-4 py-3">
+              <span class="rounded bg-indigo-50 px-2 py-1 text-xs font-medium text-indigo-700">
+                {{ entry.action }}
+              </span>
+            </td>
+            <td class="px-4 py-3 text-slate-600">
+              {{ entry.entityType }}
+              @if (entry.entityId) {
+                <span class="block text-xs text-slate-400">{{ entry.entityId }}</span>
+              }
+            </td>
+            <td class="px-4 py-3">
+              <pre class="max-w-xl whitespace-pre-wrap break-words text-xs text-slate-600">{{
+                entry.details | json
+              }}</pre>
+            </td>
+          </tr>
+        } @empty {
+          <tr>
+            <td colspan="5" class="px-4 py-8 text-center text-slate-500">
+              @if (loading()) {
+                Loading…
+              } @else {
+                No audit entries yet.
+              }
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</section>

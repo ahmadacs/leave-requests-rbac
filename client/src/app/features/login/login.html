@@ -1,0 +1,91 @@
+<div class="flex min-h-screen items-center justify-center bg-slate-100 px-4 py-8">
+  <div class="w-full max-w-4xl rounded-xl bg-white p-6 shadow-sm sm:p-8">
+    <div class="grid gap-8 lg:grid-cols-2 lg:gap-10">
+      <div>
+        <h1 class="mb-1 text-xl font-semibold text-slate-800">Sign in</h1>
+        <p class="mb-6 text-sm text-slate-500">Leave Requests with RBAC</p>
+
+        @if (error(); as message) {
+          <div
+            role="alert"
+            class="mb-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
+          >
+            {{ message }}
+          </div>
+        }
+
+        <form [formGroup]="form" (ngSubmit)="submit()" class="space-y-4">
+          <div>
+            <label for="email" class="mb-1 block text-sm font-medium text-slate-700">Email</label>
+            <input
+              id="email"
+              type="email"
+              formControlName="email"
+              autocomplete="username"
+              class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
+            />
+          </div>
+
+          <div>
+            <label for="password" class="mb-1 block text-sm font-medium text-slate-700">Password</label>
+            <input
+              id="password"
+              type="password"
+              formControlName="password"
+              autocomplete="current-password"
+              class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
+            />
+          </div>
+
+          <button
+            type="submit"
+            [disabled]="submitting()"
+            class="w-full rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-60"
+          >
+            {{ submitting() ? 'Signing in...' : 'Sign in' }}
+          </button>
+        </form>
+      </div>
+
+      <aside class="lg:border-l lg:border-slate-200 lg:pl-10">
+        <div class="mb-3">
+          <h2 class="text-sm font-semibold text-slate-700">Demo accounts</h2>
+          <p class="text-xs text-slate-500">Click an account to fill the form.</p>
+        </div>
+
+        <div class="space-y-3">
+          @for (group of demoTenants; track group.tenant) {
+            <section class="overflow-hidden rounded-lg border border-slate-200">
+              <h3
+                class="border-b border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-slate-500"
+              >
+                {{ group.tenant }}
+              </h3>
+              <div class="divide-y divide-slate-100">
+                @for (account of group.accounts; track account.email) {
+                  <button
+                    type="button"
+                    (click)="useDemoAccount(account.email)"
+                    [attr.aria-pressed]="selectedEmail() === account.email"
+                    [class.bg-indigo-50]="selectedEmail() === account.email"
+                    [class.ring-2]="selectedEmail() === account.email"
+                    [class.ring-inset]="selectedEmail() === account.email"
+                    [class.ring-indigo-300]="selectedEmail() === account.email"
+                    class="flex w-full items-center justify-between gap-3 px-3 py-2 text-left transition hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500"
+                  >
+                    <span class="truncate text-sm text-slate-700">{{ account.email }}</span>
+                    <span
+                      class="shrink-0 rounded-full bg-white px-2 py-0.5 text-[11px] font-medium text-slate-600 ring-1 ring-inset ring-slate-200"
+                    >
+                      {{ account.role }}
+                    </span>
+                  </button>
+                }
+              </div>
+            </section>
+          }
+        </div>
+      </aside>
+    </div>
+  </div>
+</div>

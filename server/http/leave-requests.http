@@ -1,0 +1,215 @@
+@host = https://localhost:7277
+# Demo password for every seeded account.
+@password = Passw0rd!
+
+@adminToken = PASTE_ADMIN_ACCESS_TOKEN
+@hrToken = PASTE_HR_ACCESS_TOKEN
+@managerToken = PASTE_MANAGER_ACCESS_TOKEN
+@employeeToken = PASTE_EMPLOYEE_ACCESS_TOKEN
+
+# Replace with ids returned by GET /api/leave-requests and GET /api/roles.
+@administratorRoleId = PASTE_ADMINISTRATOR_ROLE_ID
+@financeRequestId = PASTE_FINANCE_REQUEST_ID
+@managersOwnRequestId = PASTE_MANAGERS_OWN_REQUEST_ID
+@longRequestId = PASTE_11_DAY_PENDING_REQUEST_ID
+@contosoRequestId = PASTE_CONTOSO_REQUEST_ID
+
+###
+# 200 - Administrator signs in. Copy accessToken into @adminToken.
+# The refresh token is set as an HttpOnly cookie (Secure, SameSite=Strict, path=/api/auth).
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@northwind.test",
+  "password": "{{password}}"
+}
+
+###
+# 200 - HR signs in. Copy accessToken into @hrToken.
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "hr@northwind.test",
+  "password": "{{password}}"
+}
+
+###
+# 200 - Sales manager signs in (Manager role). Copy accessToken into @managerToken.
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "sales.manager@northwind.test",
+  "password": "{{password}}"
+}
+
+###
+# 200 - Employee signs in. Copy accessToken into @employeeToken.
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "sales.employee1@northwind.test",
+  "password": "{{password}}"
+}
+
+###
+# 401 - identical body for a wrong password, an unknown email and a disabled account.
+# Never reveals whether the account exists.
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "sales.employee1@northwind.test",
+  "password": "not-the-password"
+}
+
+###
+# 401 - a protected endpoint without a bearer token.
+GET {{host}}/api/me
+
+###
+# 200 - /api/me returns roles + effective permissions (resolved per request, never in the JWT).
+GET {{host}}/api/me
+Authorization: Bearer {{adminToken}}
+
+###
+# 200 - own scope; the employee always sees their own rows.
+GET {{host}}/api/leave-requests?scope=own
+Authorization: Bearer {{employeeToken}}
+
+###
+# 403 - the employee has leaves.view.own but not leaves.view.all.
+# Problem details name the missing permission.
+GET {{host}}/api/leave-requests?scope=all
+Authorization: Bearer {{employeeToken}}
+
+###
+# 200 - HR holds leaves.view.all, so it can list every request in the company.
+GET {{host}}/api/leave-requests?scope=all
+Authorization: Bearer {{hrToken}}
+
+###
+# 403 - the employee lacks leaves.approve.
+POST {{host}}/api/leave-requests/00000000-0000-0000-0000-000000000000/approve
+Authorization: Bearer {{employeeToken}}
+
+###
+# 404 - HR holds leaves.approve, but this id does not exist (or is out of scope).
+POST {{host}}/api/leave-requests/00000000-0000-0000-0000-000000000000/approve
+Authorization: Bearer {{hrToken}}
+
+###
+# 403 - self-approval: the manager cannot decide their own pending request.
+# The seeded request is 2026-11-09..2026-11-10 for sales.manager@northwind.test.
+POST {{host}}/api/leave-requests/{{managersOwnRequestId}}/approve
+Authorization: Bearer {{managerToken}}
+
+###
+# 403 - ABAC: the seeded 2026-12-21..2026-12-31 request is 11 days long.
+# A Manager may only approve up to 10 calendar days; longer requests need HR.
+POST {{host}}/api/leave-requests/{{longRequestId}}/approve
+Authorization: Bearer {{managerToken}}
+
+###
+# 200 - HR holds leaves.approve.long, so it can approve the 11-day request.
+POST {{host}}/api/leave-requests/{{longRequestId}}/approve
+Authorization: Bearer {{hrToken}}
+
+###
+# 404 - a Sales manager cannot see a Finance request, so it cannot be reviewed.
+# Department visibility narrows the lookup before the review rule runs.
+POST {{host}}/api/leave-requests/{{financeRequestId}}/approve
+Authorization: Bearer {{managerToken}}
+
+###
+# 200 - Administrator holds leaves.view.all, so it can review any department.
+POST {{host}}/api/leave-requests/{{financeRequestId}}/approve
+Authorization: Bearer {{adminToken}}
+
+###
+# 404 - a request that belongs to another tenant, or outside your scope.
+# Out-of-scope rows are 404, not 403: we do not reveal that they exist.
+GET {{host}}/api/leave-requests/{{contosoRequestId}}
+Authorization: Bearer {{employeeToken}}
+
+###
+# 404 - a request id that does not exist at all looks the same as out-of-scope.
+GET {{host}}/api/leave-requests/00000000-0000-0000-0000-000000000000
+Authorization: Bearer {{employeeToken}}
+
+###
+# 409 - overlap: the employee already has a Pending request on 2026-11-02..2026-11-06.
+POST {{host}}/api/leave-requests
+Authorization: Bearer {{employeeToken}}
+Content-Type: application/json
+
+{
+  "type": "Annual",
+  "startDate": "2026-11-05",
+  "endDate": "2026-11-07",
+  "reason": "Overlap demo"
+}
+
+###
+# 400 - validation: EndDate must be on or after StartDate.
+POST {{host}}/api/leave-requests
+Authorization: Bearer {{employeeToken}}
+Content-Type: application/json
+
+{
+  "type": "Annual",
+  "startDate": "2026-12-10",
+  "endDate": "2026-12-01",
+  "reason": "Invalid date range"
+}
+
+###
+# 403 - system roles cannot be edited. Replace with the Administrator role id.
+PUT {{host}}/api/roles/{{administratorRoleId}}
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "name": "Administrator",
+  "description": "nope",
+  "permissions": []
+}
+
+###
+# 200 - CSV export (requires leaves.view.all + leaves.export).
+# A 403 here is returned as application/problem+json, even though the success
+# response is text/csv. The Angular client reads the Blob error body.
+GET {{host}}/api/leave-requests/export
+Authorization: Bearer {{adminToken}}
+
+###
+# 200 - departments for the create-user form (requires users.view).
+GET {{host}}/api/departments
+Authorization: Bearer {{adminToken}}
+
+###
+# 200 - users in the caller's tenant (requires users.view).
+GET {{host}}/api/users
+Authorization: Bearer {{adminToken}}
+
+###
+# 200 - the permission catalogue, grouped by module for the role editor UI.
+GET {{host}}/api/permissions
+Authorization: Bearer {{adminToken}}
+
+###
+# 200 - read-only role/assignment audit history (requires audit.view).
+GET {{host}}/api/audit-logs?take=100
+Authorization: Bearer {{adminToken}}
+
+###
+# 403 - employees cannot read the audit log.
+GET {{host}}/api/audit-logs
+Authorization: Bearer {{employeeToken}}
+
+###
+# 200 - rotates the refresh cookie. Reusing an already-rotated token revokes every session.
+POST {{host}}/api/auth/refresh

@@ -1,0 +1,157 @@
+<section class="space-y-4">
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-lg font-semibold text-slate-800">Roles &amp; permissions</h1>
+      <p class="text-sm text-slate-500">
+        Roles are data: pick a role, then grant the permissions it holds.
+      </p>
+    </div>
+    @if (canManage()) {
+      <button
+        type="button"
+        (click)="startCreate()"
+        class="rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-indigo-700"
+      >
+        New role
+      </button>
+    }
+  </div>
+
+  @if (error(); as message) {
+    <div
+      role="alert"
+      class="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
+    >
+      {{ message }}
+    </div>
+  }
+  @if (notice(); as message) {
+    <div
+      role="status"
+      class="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700"
+    >
+      {{ message }}
+    </div>
+  }
+
+  <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
+    <aside class="rounded-lg border border-slate-200 bg-white p-2">
+      @for (role of roles(); track role.id) {
+        <button
+          type="button"
+          (click)="select(role)"
+          class="flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-sm hover:bg-slate-100"
+          [class.bg-indigo-50]="selected()?.id === role.id && !creating()"
+        >
+          <span class="font-medium">{{ role.name }}</span>
+          @if (role.isSystemRole) {
+            <span class="rounded-full bg-slate-200 px-2 py-0.5 text-xs text-slate-600">system</span>
+          }
+        </button>
+      } @empty {
+        <p class="px-3 py-4 text-sm text-slate-400">No roles.</p>
+      }
+    </aside>
+
+    <div class="lg:col-span-2">
+      @if (creating() || selected(); as _) {
+        <form
+          [formGroup]="form"
+          (ngSubmit)="save()"
+          class="space-y-4 rounded-lg border border-slate-200 bg-white p-4"
+        >
+          <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <label class="text-sm">
+              <span class="mb-1 block font-medium text-slate-700">Name</span>
+              <input
+                type="text"
+                formControlName="name"
+                [readonly]="!isEditable()"
+                class="w-full rounded-md border border-slate-300 px-3 py-2 disabled:bg-slate-50"
+              />
+            </label>
+            <label class="text-sm">
+              <span class="mb-1 block font-medium text-slate-700">Description</span>
+              <input
+                type="text"
+                formControlName="description"
+                [readonly]="!isEditable()"
+                class="w-full rounded-md border border-slate-300 px-3 py-2 disabled:bg-slate-50"
+              />
+            </label>
+          </div>
+
+          <div class="space-y-3">
+            @for (group of groups(); track group.name) {
+              <fieldset class="rounded-md border border-slate-200 p-3">
+                <legend class="flex items-center gap-2 px-1 text-sm font-semibold text-slate-700">
+                  <input
+                    type="checkbox"
+                    [checked]="groupFullySelected(group)"
+                    [disabled]="!isEditable()"
+                    (change)="toggleGroup(group, $any($event.target).checked)"
+                  />
+                  {{ group.name }}
+                </legend>
+                <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  @for (permission of group.permissions; track permission.code) {
+                    <label class="flex items-start gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        class="mt-0.5"
+                        [checked]="hasDraft(permission.code)"
+                        [disabled]="!isEditable()"
+                        (change)="togglePermission(permission.code)"
+                      />
+                      <span>
+                        <span class="font-medium text-slate-700">{{ permission.code }}</span>
+                        <span class="block text-xs text-slate-500">{{
+                          permission.description
+                        }}</span>
+                      </span>
+                    </label>
+                  }
+                </div>
+              </fieldset>
+            }
+          </div>
+
+          @if (isEditable()) {
+            <div class="flex items-center gap-2">
+              <button
+                type="submit"
+                [disabled]="saving()"
+                class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-60"
+              >
+                {{ creating() ? 'Create role' : 'Save changes' }}
+              </button>
+              @if (selected() && !creating()) {
+                <button
+                  type="button"
+                  (click)="remove(selected()!)"
+                  class="rounded-md border border-red-300 px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-50"
+                >
+                  Delete role
+                </button>
+              }
+            </div>
+          } @else {
+            <p class="text-sm text-slate-500">
+              {{
+                selected()?.isSystemRole
+                  ? 'System roles are read-only.'
+                  : 'You do not have permission to edit roles.'
+              }}
+            </p>
+          }
+        </form>
+      } @else {
+        <div
+          class="rounded-lg border border-dashed border-slate-300 bg-white p-10 text-center text-sm text-slate-400"
+        >
+          Select a role to review or edit its permissions.
+        </div>
+      }
+    </div>
+  </div>
+</section>
