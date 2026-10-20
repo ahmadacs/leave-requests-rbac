@@ -14,7 +14,6 @@ leave-requests-rbac/
 ├── server/
 │   ├── LeaveRequests.sln          (open this in Visual Studio)
 │   ├── LeaveRequests.slnx
-│   ├── http/leave-requests.http
 │   └── src/LeaveRequests.Api/
 └── client/
 ```
@@ -184,9 +183,6 @@ Errors are RFC 9457 problem details (`application/problem+json`):
 `400` validation · `401` auth failure (identical message for every reason) ·
 `403` missing permission or a denied rule · `404` not found **or out of scope** ·
 `409` state conflict / overlap / duplicate.
-
-Ready-made request collection with the `401`/`403`/`404`/`409` examples:
-`server/http/leave-requests.http`.
 
 ---
 
